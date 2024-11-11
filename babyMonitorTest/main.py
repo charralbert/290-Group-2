@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib
 import cv2 as cv
 import pyaudio
 import threading
