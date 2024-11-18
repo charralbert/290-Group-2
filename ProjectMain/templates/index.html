@@ -1,0 +1,88 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>External Webcam Stream</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        video {
+            border: 2px solid #333;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 640px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        h1, select {
+            font-family: Arial, sans-serif;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>External Webcam Stream</h1>
+    <select id="videoSource"></select>
+    <video id="liveVideo" autoplay playsinline></video>
+    <script>
+        const videoElement = document.getElementById('liveVideo');
+        const videoSourceSelect = document.getElementById('videoSource');
+
+        // List available media devices and populate the dropdown
+        async function getConnectedDevices() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+                videoSourceSelect.innerHTML = ''; // Clear existing options
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Camera ${index + 1}`;
+                    videoSourceSelect.appendChild(option);
+                });
+
+                if (videoDevices.length > 0) {
+                    // Automatically start with the first camera
+                    startStream(videoDevices[0].deviceId);
+                }
+            } catch (error) {
+                console.error('Error accessing media devices.', error);
+            }
+        }
+
+        // Start video stream with the selected camera
+        async function startStream(deviceId) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { deviceId: deviceId ? { exact: deviceId } : undefined },
+                    audio: true
+                });
+
+                videoElement.srcObject = stream;
+            } catch (error) {
+                console.error('Error starting video stream.', error);
+                alert('Unable to access webcam or microphone. Please check permissions.');
+            }
+        }
+
+        // Listen for changes in the video source dropdown
+        videoSourceSelect.addEventListener('change', () => {
+            const selectedDeviceId = videoSourceSelect.value;
+            startStream(selectedDeviceId);
+        });
+
+        // Load available devices on page load
+        window.onload = getConnectedDevices;
+    </script>
+</body>
+</html>
