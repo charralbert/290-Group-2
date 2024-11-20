@@ -1,7 +1,8 @@
 import cv2
-from flask import Flask, Response
+from flask import Flask, Response, render_template
 
-app = Flask(__name__)
+
+app = Flask(__name__, template_folder='templates')
 
 # Initialize the camera (assuming the camera is at index 0)
 # You can adjust the index if there are multiple cameras connected.
@@ -44,15 +45,7 @@ def video_feed():
 # Index route to display the video
 @app.route('/')
 def index():
-    return '''
-        <html>
-            <head><title>USB Camera Stream</title></head>
-            <body>
-                <h1>USB Camera Stream</h1>
-                <img src="/video_feed" width="640" height="480" />
-            </body>
-        </html>
-    '''
+    return render_template('index.html')
 
 
 if __name__ == '__main__':
