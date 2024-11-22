@@ -1,117 +1,67 @@
-      <!DOCTYPE html>
-<html>
-   <head>
-       <title>Live Stream with Audio</title>
-       <style>
-           body {
-               margin: 0;
-               padding: 0;
-               font-family: Arial, sans-serif;
-               overflow: hidden;
-           }
-           .video-container {
-               position: relative;
-               width: 100vw;
-               height: 100vh;
-               overflow: hidden;
-           }
-           .info-bar {
-               position: absolute;
-               top: 0;
-               left: 0;
-               width: 100%;
-               height: 100px;
-               background-color: rgba(173, 216, 230, 0.7);
-               color: white;
-               display: flex;
-               align-items: center;
-               justify-content: space-between;
-               padding: 0 20px;
-               font-size: 28px;
-               z-index: 10;
-               box-sizing: border-box;
-           }
-           .live-stream {
-               position: absolute;
-               top: 0;
-               left: 0;
-               width: 100%;
-               height: 100%;
-               object-fit: cover;
-           }
-           .brand {
-               font-weight: bold;
-           }
-           .volume-bar {
-               position: absolute;
-               bottom: 20px;
-               left: 20px;
-               width: 300px;
-               height: 40px;
-               background-color: #ccc;
-               border-radius: 5px;
-               box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.5);
-           }
-           .volume-fill {
-               height: 100%;
-               background-color: #4caf50;
-               border-radius: 5px;
-               transition: width 0.1s ease;
-           }
-       </style>
-   </head>
-   <body>
-       <div class="video-container">
-           <div class="info-bar">
-               <span class="brand">Live Stream</span>
-               <span id="details">FPS: {{ fps }} | Timestamp: --:--:--</span>
-           </div>
-           <img class="live-stream" src="/video_feed" alt="Live Stream">
-           <div class="volume-bar">
-               <div id="volume-fill" class="volume-fill" style="width: 0%;"></div>
-           </div>
-       </div>
-       <script>
-           // Update the timestamp dynamically
-           function updateTimestamp() {
-               const detailsElement = document.getElementById("details");
-               const now = new Date();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio and Video Stream</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+        }
 
-               const formattedTime = now.toISOString().split('T')[0] +
-                   ' ' +
-                   now.toLocaleTimeString();
+        #audio-bar {
+            width: 100%;
+            height: 30px;
+            background-color: #ddd;
+            margin-top: 20px;
+        }
 
-               const currentText = detailsElement.textContent;
-               const fpsText = currentText.split('|')[0].trim(); // Extract FPS part
-               detailsElement.textContent = `${fpsText} | Timestamp: ${formattedTime}`;
-           }
+        #audio-bar-fill {
+            height: 100%;
+            width: 0%;
+            background-color: green;
+        }
 
-           function updateVolumeBar(volume) {
-               const volumeBar = document.getElementById('volume-fill');
-               volumeBar.style.width = (volume * 100) + '%';
-           }
+        #video-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Live Video Stream</h1>
+    <div id="audio-bar">
+        <div id="audio-bar-fill"></div>
+    </div>
 
-           // Simulate getting volume data (in a real scenario, this would be updated dynamically via websocket or polling)
-           let volume = 0.0;
+    <div id="video-container">
+        <img src="{{ url_for('video_feed') }}" id="video" alt="Live Video Stream">
+    </div>
 
-           setInterval(() => {
-               // Replace this with real API call to get the actual audio volume
-               volume = Math.random(); // Simulating volume change
-               updateVolumeBar(volume);
-           }, 100);
+    <script>
+        // Function to update the audio bar
+        function updateAudioBar(volume) {
+            // Normalize the volume (you can adjust this to fit your needs)
+            const normalizedVolume = Math.min(volume / 100, 1); // Ensure the max volume is capped at 100%
+            document.getElementById('audio-bar-fill').style.width = (normalizedVolume * 100) + '%';
+        }
 
-           // Update the timestamp every second
-           setInterval(updateTimestamp, 1000);
-           updateTimestamp();
+        // Polling the server for audio level
+        function getVolume() {
+            fetch('/get_volume')
+                .then(response => response.json())
+                .then(data => {
+                    const volume = data.volume;
+                    updateAudioBar(volume);
+                })
+                .catch(error => console.error('Error fetching volume data:', error));
+        }
 
-           // Notify the server when the page is loaded and closed
-           window.addEventListener('load', () => {
-               fetch('/start_audio', { method: 'POST' });
-           });
-
-           window.addEventListener('beforeunload', () => {
-               fetch('/stop_audio', { method: 'POST' });
-           });
-       </script>
-   </body>
+        // Update volume every 100ms
+        setInterval(getVolume, 100);
+    </script>
+</body>
 </html>
