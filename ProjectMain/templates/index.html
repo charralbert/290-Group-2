@@ -1,7 +1,67 @@
-        <html>
-            <head><title>USB Camera Stream</title></head>
-            <body>
-                <h1>USB Camera Stream</h1>
-                <img src="/video_feed" width="640" height="480" />
-            </body>
-        </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio and Video Stream</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        #audio-bar {
+            width: 100%;
+            height: 30px;
+            background-color: #ddd;
+            margin-top: 20px;
+        }
+
+        #audio-bar-fill {
+            height: 100%;
+            width: 0%;
+            background-color: green;
+        }
+
+        #video-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Live Video Stream</h1>
+    <div id="audio-bar">
+        <div id="audio-bar-fill"></div>
+    </div>
+
+    <div id="video-container">
+        <img src="{{ url_for('video_feed') }}" id="video" alt="Live Video Stream">
+    </div>
+
+    <script>
+        // Function to update the audio bar
+        function updateAudioBar(volume) {
+            // Normalize the volume (you can adjust this to fit your needs)
+            const normalizedVolume = Math.min(volume / 100, 1); // Ensure the max volume is capped at 100%
+            document.getElementById('audio-bar-fill').style.width = (normalizedVolume * 100) + '%';
+        }
+
+        // Polling the server for audio level
+        function getVolume() {
+            fetch('/get_volume')
+                .then(response => response.json())
+                .then(data => {
+                    const volume = data.volume;
+                    updateAudioBar(volume);
+                })
+                .catch(error => console.error('Error fetching volume data:', error));
+        }
+
+        // Update volume every 100ms
+        setInterval(getVolume, 100);
+    </script>
+</body>
+</html>
