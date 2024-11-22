@@ -1,7 +1,31 @@
 import cv2
 from flask import Flask, Response, render_template
+import pyaudio
+import numpy as np
+import threading
+import time
+
+# Audio initialization------------------------
+# Parameters for audio input
+FORMAT = pyaudio.paInt16  # 16-bit depth
+CHANNELS = 1  # Mono
+RATE = 44100  # Samples per second (44.1kHz)
+CHUNK = 1024  # Number of frames per buffer (1024 samples per frame)
+VOLUME_THRESHOLD = 500  # Volume threshold to print (optional, can be adjusted)
+
+# Create a PyAudio object
+p = pyaudio.PyAudio()
+
+# Open the audio stream
+stream = p.open(format=FORMAT,
+                channels=CHANNELS,
+                rate=RATE,
+                input=True,
+                frames_per_buffer=CHUNK)
 
 
+
+# Flask initialization -------------
 app = Flask(__name__, template_folder='templates')
 
 # Initialize the camera (assuming the camera is at index 0)
@@ -14,7 +38,25 @@ if not camera.isOpened():
     exit()
 
 
+
 # Function to generate the video stream
+def get_volume():
+    while True:
+        # Read data from microphone
+        data = stream.read(CHUNK)
+        # Convert the byte data to numpy array of integers
+        audio_data = np.frombuffer(data, dtype=np.int16)
+        # Calculate the root-mean-square (RMS) which is a measure of the audio volume
+        volume = np.sqrt(np.mean(np.square(audio_data)))
+        print(f"Current volume: {volume}")
+        time.sleep(0.1)  # Sleep for 100ms to prevent overwhelming the CPU
+
+
+# Start the thread to monitor the microphone volume
+volume_thread = threading.Thread(target=get_volume)
+volume_thread.daemon = True  # Allow the program to exit if this is the only thread running
+volume_thread.start()
+
 def generate_video():
     while True:
         # Read a frame from the camera
@@ -51,3 +93,9 @@ def index():
 if __name__ == '__main__':
     # Run the app on the local network, accessible from other devices
     app.run(host='0.0.0.0', port=5000)
+
+
+# Close the stream when done
+stream.stop_stream()
+stream.close()
+p.terminate()
