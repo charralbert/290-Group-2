@@ -1,35 +1,118 @@
+
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Microphone Volume Level</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 50px;
-        }
-        #volume-level {
-            font-size: 50px;
-            font-weight: bold;
-            color: #333;
-        }
-    </style>
-</head>
-<body>
-    <h1>Microphone Volume Level</h1>
-    <div id="volume-level">0 dB</div>  <!-- This will display the volume level -->
+<html>
+   <head>
+       <title>Live Stream with Audio</title>
+       <style>
+           body {
+               margin: 0;
+               padding: 0;
+               font-family: Arial, sans-serif;
+               overflow: hidden;
+           }
+           .video-container {
+               position: relative;
+               width: 100vw;
+               height: 100vh;
+               overflow: hidden;
+           }
+           .info-bar {
+               position: absolute;
+               top: 0;
+               left: 0;
+               width: 100%;
+               height: 100px;
+               background-color: rgba(173, 216, 230, 0.7);
+               color: white;
+               display: flex;
+               align-items: center;
+               justify-content: space-between;
+               padding: 0 20px;
+               font-size: 28px;
+               z-index: 10;
+               box-sizing: border-box;
+           }
+           .live-stream {
+               position: absolute;
+               top: 0;
+               left: 0;
+               width: 100%;
+               height: 100%;
+               object-fit: cover;
+           }
+           .brand {
+               font-weight: bold;
+           }
+           .volume-bar {
+               position: absolute;
+               bottom: 20px;
+               left: 20px;
+               width: 300px;
+               height: 40px;
+               background-color: #ccc;
+               border-radius: 5px;
+               box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.5);
+           }
+           .volume-fill {
+               height: 100%;
+               background-color: #4caf50;
+               border-radius: 5px;
+               transition: width 0.1s ease;
+           }
+       </style>
+   </head>
+   <body>
+       <div class="video-container">
+           <div class="info-bar">
+               <span class="brand">Live Stream</span>
+               <span id="details">FPS: {{ fps }} | Timestamp: --:--:--</span>
+           </div>
+           <img class="live-stream" src="/video_feed" alt="Live Stream">
+           <div class="volume-bar">
+               <div id="volume-fill" class="volume-fill" style="width: 0%;"></div>
+           </div>
+       </div>
+       <script>
+           // Update the timestamp dynamically
+           function updateTimestamp() {
+               const detailsElement = document.getElementById("details");
+               const now = new Date();
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
-    <script>
-        var socket = io.connect('http://localhost:5000');
+               const formattedTime = now.toISOString().split('T')[0] +
+                   ' ' +
+                   now.toLocaleTimeString();
 
-        // Listen for the volume level emitted from the server
-        socket.on('volume', function(data) {
-            var volume = data.level.toFixed(2);  // Limit the number of decimals for cleaner display
-            document.getElementById('volume-level').innerText = volume + ' dB';  // Update the displayed volume
-        });
-    </script>
-</body>
+               const currentText = detailsElement.textContent;
+               const fpsText = currentText.split('|')[0].trim(); // Extract FPS part
+               detailsElement.textContent = `${fpsText} | Timestamp: ${formattedTime}`;
+           }
+
+           function updateVolumeBar(volume) {
+               const volumeBar = document.getElementById('volume-fill');
+               volumeBar.style.width = (volume * 100) + '%';
+           }
+
+           // Simulate getting volume data (in a real scenario, this would be updated dynamically via websocket or polling)
+           let volume = 0.0;
+
+           setInterval(() => {
+               // Replace this with real API call to get the actual audio volume
+               volume = Math.random(); // Simulating volume change
+               updateVolumeBar(volume);
+           }, 100);
+
+           // Update the timestamp every second
+           setInterval(updateTimestamp, 1000);
+           updateTimestamp();
+
+           // Notify the server when the page is loaded and closed
+           window.addEventListener('load', () => {
+               fetch('/start_audio', { method: 'POST' });
+           });
+
+           window.addEventListener('beforeunload', () => {
+               fetch('/stop_audio', { method: 'POST' });
+           });
+       </script>
+   </body>
 </html>

@@ -46,7 +46,6 @@ def get_volume():
         audio_data = np.frombuffer(data, dtype=np.int16)
         # Calculate the root-mean-square (RMS) which is a measure of the audio volume
         current_volume = np.sqrt(np.mean(np.square(audio_data)))
-        print(f"Current volume: {current_volume}")
         time.sleep(0.1)  # Sleep for 100ms to prevent overwhelming the CPU
 
 # Start the thread to monitor the microphone volume
