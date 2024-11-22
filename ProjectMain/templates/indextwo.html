@@ -3,127 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>External Webcam Stream</title>
+    <title>Microphone Volume Level</title>
     <style>
         body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f4f4f4;
-        }
-        video {
-            border: 2px solid #333;
-            border-radius: 8px;
-            width: 80%;
-            max-width: 640px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        h1, select {
             font-family: Arial, sans-serif;
-            margin: 10px 0;
+            text-align: center;
+            margin-top: 50px;
         }
-        /* Simple styling for controls */
-        .controls {
-            margin-top: 20px;
+        #volume-level {
+            font-size: 50px;
+            font-weight: bold;
+            color: #333;
         }
     </style>
 </head>
 <body>
-    <h1>External Webcam Stream</h1>
-    <select id="videoSource"></select>
-    <video id="liveVideo" autoplay playsinline></video>
+    <h1>Microphone Volume Level</h1>
+    <div id="volume-level">0 dB</div>  <!-- This will display the volume level -->
 
-    <!-- Controls to manage volume and mute -->
-    <div class="controls">
-        <label for="volumeControl">Volume: </label>
-        <input type="range" id="volumeControl" min="0" max="1" step="0.01" value="1">
-        <button id="muteButton">Mute</button>
-    </div>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
     <script>
-        const videoElement = document.getElementById('liveVideo');
-        const videoSourceSelect = document.getElementById('videoSource');
-        const volumeControl = document.getElementById('volumeControl');
-        const muteButton = document.getElementById('muteButton');
+        var socket = io.connect('http://localhost:5000');
 
-        let currentStream;
-
-        // List available media devices and populate the dropdown
-        async function getConnectedDevices() {
-            try {
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoDevices = devices.filter(device => device.kind === 'videoinput');
-
-                videoSourceSelect.innerHTML = ''; // Clear existing options
-                videoDevices.forEach((device, index) => {
-                    const option = document.createElement('option');
-                    option.value = device.deviceId;
-                    option.text = device.label || `Camera ${index + 1}`;
-                    videoSourceSelect.appendChild(option);
-                });
-
-                if (videoDevices.length > 0) {
-                    // Automatically start with the first camera
-                    startStream(videoDevices[0].deviceId);
-                }
-            } catch (error) {
-                console.error('Error accessing media devices.', error);
-            }
-        }
-
-        // Start video and audio stream with the selected device
-        async function startStream(deviceId) {
-            try {
-                // Request both video and audio
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { deviceId: deviceId ? { exact: deviceId } : undefined },
-                    audio: true
-                });
-
-                // Set the stream to the video element
-                videoElement.srcObject = stream;
-                currentStream = stream;
-
-                // Set up initial volume control based on the stream
-                const audioTrack = stream.getAudioTracks()[0];
-                if (audioTrack) {
-                    // Check if there's an audio track
-                    console.log('Audio track is available.');
-
-                    // Link volume control to the audio track
-                    volumeControl.addEventListener('input', (event) => {
-                        // Adjust volume when slider is moved
-                        videoElement.volume = event.target.value;
-                    });
-
-                    // Set up mute/unmute functionality
-                    muteButton.addEventListener('click', () => {
-                        if (videoElement.muted) {
-                            videoElement.muted = false;
-                            muteButton.textContent = 'Mute'; // Change button text
-                        } else {
-                            videoElement.muted = true;
-                            muteButton.textContent = 'Unmute'; // Change button text
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('Error starting video stream.', error);
-                alert('Unable to access webcam or microphone. Please check permissions.');
-            }
-        }
-
-        // Listen for changes in the video source dropdown
-        videoSourceSelect.addEventListener('change', () => {
-            const selectedDeviceId = videoSourceSelect.value;
-            startStream(selectedDeviceId);
+        // Listen for the volume level emitted from the server
+        socket.on('volume', function(data) {
+            var volume = data.level.toFixed(2);  // Limit the number of decimals for cleaner display
+            document.getElementById('volume-level').innerText = volume + ' dB';  // Update the displayed volume
         });
-
-        // Load available devices on page load
-        window.onload = getConnectedDevices;
     </script>
 </body>
 </html>
