@@ -1,10 +1,29 @@
 import cv2
-from flask import Flask, Response, render_template, request
+from flask import Flask, Response, render_template, jsonify
 import time
 import pyaudio
 import numpy as np
 import threading
+import logging
 
+# Audio initialization------------------------
+FORMAT = pyaudio.paInt16  # 16-bit depth
+CHANNELS = 1  # Mono
+RATE = 44100  # Samples per second (44.1kHz)
+CHUNK = 1024  # Number of frames per buffer (1024 samples per frame)
+VOLUME_THRESHOLD = 60  # Volume threshold to trigger notification
+
+# Create a PyAudio object
+p = pyaudio.PyAudio()
+
+# Open the audio stream
+stream = p.open(format=FORMAT,
+               channels=CHANNELS,
+               rate=RATE,
+               input=True,
+               frames_per_buffer=CHUNK)
+
+# Flask initialization -------------
 app = Flask(__name__)
 
 # Initialize the camera (assuming the camera is at index 0)
@@ -12,8 +31,8 @@ camera = cv2.VideoCapture(0)
 
 # Check if the camera is opened correctly
 if not camera.isOpened():
-   print("Error: Could not open camera.")
-   exit()
+    logging.error("Error: Could not open camera.")
+    exit()
 
 # Retrieve FPS
 fps = camera.get(cv2.CAP_PROP_FPS)
@@ -22,89 +41,92 @@ fps = camera.get(cv2.CAP_PROP_FPS)
 fps = 60  # Set FPS
 camera.set(cv2.CAP_PROP_FPS, fps)
 
-# PyAudio configuration for both capture and playback
-p = pyaudio.PyAudio()
+# Global variables for notification and audio level
+volume_notification = ""  # Empty by default
+current_volume = 0  # Default audio level
 
-# Setup audio stream for capturing
-stream_input = p.open(format=pyaudio.paInt16,
-                     channels=1,
-                     rate=44100,
-                     input=True,
-                     frames_per_buffer=1024)
+# Function to monitor the microphone volume
+def get_volume():
+    global volume_notification, current_volume
+    while True:
+        try:
+            # Read data from microphone
+            data = stream.read(CHUNK)
+            # Convert the byte data to numpy array of integers
+            audio_data = np.frombuffer(data, dtype=np.int16)
+            # Calculate the root-mean-square (RMS) which is a measure of the audio volume
+            volume = np.sqrt(np.mean(np.square(audio_data)))
+            current_volume = volume  # Update the global audio level
 
-# Setup audio stream for playback
-stream_output = p.open(format=pyaudio.paInt16,
-                      channels=1,
-                      rate=44100,
-                      output=True,
-                      frames_per_buffer=1024)
+            # Log the volume to verify it
+            #logging.debug(f"Current audio volume: {volume}")
 
-# Global variable to control audio playback
-audio_playing = False
+            # If the volume exceeds the threshold, set the notification message
+            if volume > VOLUME_THRESHOLD:
+                volume_notification = "Loud sound detected! Volume is too high."
+            else:
+                volume_notification = ""  # Clear notification if volume is below threshold
+
+            time.sleep(0.1)  # Sleep for 100ms to prevent overwhelming the CPU
+        except Exception as e:
+            logging.error(f"Error in volume monitoring: {e}")
+            break
+
+
+# Start the thread to monitor the microphone volume
+volume_thread = threading.Thread(target=get_volume)
+volume_thread.daemon = True  # Allow the program to exit if this is the only thread running
+volume_thread.start()
+
 
 # Function to generate the video stream
 def generate_video():
-   while True:
-       ret, frame = camera.read()
-       if not ret:
-           break
+    while True:
+        ret, frame = camera.read()
 
-       # Get current timestamp
-       timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        if not ret:
+            break
 
-       # Encode the frame as JPEG
-       ret, jpeg = cv2.imencode('.jpg', frame)
-       if not ret:
-           continue
+        # Encode the frame as JPEG
+        ret, jpeg = cv2.imencode('.jpg', frame)
 
-       # Convert the frame to bytes and yield it as part of the multipart response
-       frame = jpeg.tobytes()
-       yield (b'--frame\r\n'
-              b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        if not ret:
+            continue
 
-# Function to calculate the volume level
-def get_audio_level():
-   data = np.frombuffer(stream_input.read(1024), dtype=np.int16)
-   volume_norm = np.linalg.norm(data) / 1024  # Normalize the volume
-   return min(volume_norm, 1.0)  # Ensure the volume is between 0 and 1
+        # Convert the frame to bytes and yield it as part of the multipart response
+        frame = jpeg.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-# Function to play audio in real-time
-def play_audio():
-   global audio_playing
-   while True:
-       if audio_playing:
-           data = stream_input.read(1024)
-           stream_output.write(data)
-       time.sleep(0.01)  # To reduce CPU usage
-
-# Start the audio playback in a separate thread
-audio_thread = threading.Thread(target=play_audio, daemon=True)
-audio_thread.start()
 
 # Define the route to stream video
 @app.route('/video_feed')
 def video_feed():
-   return Response(generate_video(),
+    return Response(generate_video(),
                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
-# Index route to display the video and audio volume bar
+
+# Define a route to get the current audio volume
+@app.route('/get_audio_level')
+def get_audio_level():
+    global current_volume
+    return jsonify({'volume': current_volume})
+
+
+# Index route to display the video and live status
 @app.route('/')
 def index():
-   return render_template('indextwo.html')
+    global volume_notification, fps
+    # We pass dynamic data to the template instead of embedding it directly in HTML
+    return render_template('indextwo.html', fps=fps, volume_notification=volume_notification)
 
-# Routes to control audio playback
-@app.route('/start_audio', methods=['POST'])
-def start_audio():
-   global audio_playing
-   audio_playing = True
-   return '', 204
-
-@app.route('/stop_audio', methods=['POST'])
-def stop_audio():
-   global audio_playing
-   audio_playing = False
-   return '', 204
 
 if __name__ == '__main__':
-   # Run the app on the local network, accessible from other devices
-   app.run(host='0.0.0.0', port=5000)
+    # Enable logging for Flask
+    logging.basicConfig(level=logging.DEBUG)
+    app.run(host='0.0.0.0', port=5000, debug=True)
+
+    # Close the stream when done
+    stream.stop_stream()
+    stream.close()
+    p.terminate()

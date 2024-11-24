@@ -40,14 +40,11 @@ current_volume = 0
 def get_volume():
     global current_volume
     while True:
-        # Read data from microphone
         data = stream.read(CHUNK)
-        # Convert the byte data to numpy array of integers
         audio_data = np.frombuffer(data, dtype=np.int16)
-        # Calculate the root-mean-square (RMS) which is a measure of the audio volume
         current_volume = np.sqrt(np.mean(np.square(audio_data)))
-        print(f"Current volume: {current_volume}")
-        time.sleep(0.01)  # Sleep for 100ms to prevent overwhelming the CPU
+        #print(f"Current volume: {current_volume}")
+        time.sleep(0.1)
 
 # Start the thread to monitor the microphone volume
 volume_thread = threading.Thread(target=get_volume)
