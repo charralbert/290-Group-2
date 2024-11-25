@@ -124,7 +124,7 @@ def index():
 if __name__ == '__main__':
     # Enable logging for Flask
     #logging.basicConfig(level=logging.DEBUG)
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)
 
     # Close the stream when done
 #    stream.stop_stream()
