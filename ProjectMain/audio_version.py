@@ -27,9 +27,7 @@ stream = p.open(format=FORMAT,
 app = Flask(__name__)
 
 # Initialize the camera (assuming the camera is at index 0)
-camera = cv2.VideoCapture(
-    f'v4l2src device=/dev/video0 io-mode=2 ! image/jpeg, width=(int)640, height=(int)480 ! nvjpegdec ! video/x-raw, format=I420 ! appsink',
-    cv2.CAP_GSTREAMER)
+camera = cv2.VideoCapture(0)
 
 # Check if the camera is opened correctly
 if not camera.isOpened():
@@ -40,7 +38,7 @@ if not camera.isOpened():
 fps = camera.get(cv2.CAP_PROP_FPS)
 
 # Set resolution and fps
-fps = 60  # Set FPS
+fps = 30  # Set FPS
 camera.set(cv2.CAP_PROP_FPS, fps)
 
 # Global variables for notification and audio level
