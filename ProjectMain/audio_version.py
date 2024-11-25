@@ -27,7 +27,7 @@ stream = p.open(format=FORMAT,
 app = Flask(__name__)
 
 # Initialize the camera (assuming the camera is at index 0)
-camera = cv2.VideoCapture(0)
+camera = cv2.VideoCapture(0, cv2.CAP_V4L2)
 
 # Check if the camera is opened correctly
 if not camera.isOpened():
