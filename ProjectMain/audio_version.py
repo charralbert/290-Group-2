@@ -74,9 +74,9 @@ def get_volume():
 
 
 # Start the thread to monitor the microphone volume
-#volume_thread = threading.Thread(target=get_volume)
-#volume_thread.daemon = True  # Allow the program to exit if this is the only thread running
-#volume_thread.start()
+volume_thread = threading.Thread(target=get_volume)
+volume_thread.daemon = True  # Allow the program to exit if this is the only thread running
+volume_thread.start()
 
 
 # Function to generate the video stream
