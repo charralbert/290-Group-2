@@ -122,7 +122,7 @@
                        audioLevelElement.textContent = `Audio Level: ${data.volume.toFixed(2)}`;
 
                        // If volume exceeds threshold, show the notification and play sound
-                       if (data.volume > 30) {
+                       if (data.volume > 40) {
                            notificationElement.classList.add("show");
 
                            // Play notification sound
