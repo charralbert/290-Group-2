@@ -56,7 +56,7 @@ def get_volume():
             audio_data = np.frombuffer(data, dtype=np.int16)
             # Calculate the root-mean-square (RMS) which is a measure of the audio volume
             volume = np.sqrt(np.mean(np.square(audio_data)))
-            current_volume = volume *2  # Update the global audio level
+            current_volume = volume * 2  # Update the global audio level
 
             # Log the volume to verify it
             #logging.debug(f"Current audio volume: {volume}")
