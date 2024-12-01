@@ -42,16 +42,15 @@
            .brand {
                font-weight: bold;
            }
-           /* Larger and more noticeable notification style */
            .notification {
                position: absolute;
                bottom: 50px;
                left: 50%;
                transform: translateX(-50%);
                padding: 25px 40px;
-               background-color: rgba(255, 0, 0, 0.9); /* Brighter red */
+               background-color: rgba(255, 0, 0, 0.9);
                color: white;
-               font-size: 32px; /* Larger font size */
+               font-size: 32px;
                font-weight: bold;
                display: none;
                z-index: 20;
@@ -59,7 +58,6 @@
                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
                animation: bounce 1s infinite;
            }
-           /* Bounce animation */
            @keyframes bounce {
                0% { transform: translateX(-50%) translateY(0); }
                50% { transform: translateX(-50%) translateY(-20px); }
@@ -71,16 +69,16 @@
            .audio-level {
                position: absolute;
                top: 50px;
-               left: 30%; /* Midway between original and left */
+               left: 30%;
                padding: 10px;
                background-color: rgba(0, 255, 0, 0.7);
                color: white;
                font-size: 18px;
                z-index: 15;
-               transition: background-color 0.5s ease; /* Smooth transition for color change */
+               transition: background-color 0.5s ease;
            }
            .audio-level.red {
-               background-color: rgba(255, 0, 0, 0.7); /* Red color */
+               background-color: rgba(255, 0, 0, 0.7);
            }
        </style>
    </head>
@@ -96,7 +94,7 @@
        </div>
 
        <!-- Sound for notification -->
-       <audio id="notification-sound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+       <audio id="notification-sound" src="/static/Gong%20Sound.mp3" preload="auto"></audio>
 
        <script>
            // Update the timestamp dynamically
@@ -104,14 +102,12 @@
                const detailsElement = document.getElementById("details");
                const now = new Date();
 
-               // Format the time as YYYY-MM-DD HH:mm:ss
                const formattedTime = now.toISOString().split('T')[0] +
                    ' ' +
                    now.toLocaleTimeString();
 
-               // Replace only the timestamp, keep the FPS
                const currentText = detailsElement.textContent;
-               const fpsText = currentText.split('|')[0].trim(); // Extract FPS part
+               const fpsText = currentText.split('|')[0].trim();
                detailsElement.textContent = `${fpsText} | Timestamp: ${formattedTime}`;
            }
 
@@ -126,10 +122,17 @@
                        audioLevelElement.textContent = `Audio Level: ${data.volume.toFixed(2)}`;
 
                        // If volume exceeds threshold, show the notification and play sound
-                       if (data.volume > 60) {
+                       if (data.volume > 30) {
                            notificationElement.classList.add("show");
+
                            // Play notification sound
-                           document.getElementById("notification-sound").play();
+                           let audioElement = document.getElementById("notification-sound");
+
+                           // Reset and play sound
+                           audioElement.pause(); // Pause if it's already playing
+                           audioElement.currentTime = 0; // Reset time to the start
+                           audioElement.play(); // Play the sound
+
                            audioLevelElement.classList.add("red"); // Change to red when notification is triggered
                        } else {
                            notificationElement.classList.remove("show");
